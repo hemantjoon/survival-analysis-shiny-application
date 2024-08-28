@@ -20,7 +20,7 @@ ui <- fluidPage(
                        
                        
                        # Input: Select a file ----
-                       fileInput("file1", "Choose CSV File",
+                       fileInput("file1", "Choose a CSV File",
                                  multiple = FALSE,
                                  accept = c("text/csv",
                                             "text/comma-separated-values,text/plain",
