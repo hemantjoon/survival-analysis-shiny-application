@@ -3,6 +3,9 @@ library(shiny)
 options(shiny.host = '0.0.0.0')
 options(shiny.port = 7777)
 
+# Allow files up to 10 Mb
+options(shiny.maxRequestSize=10*1024^2)
+
 source('libraries.R')
 source('functions.R')
 
@@ -20,7 +23,7 @@ ui <- fluidPage(
                        
                        
                        # Input: Select a file ----
-                       fileInput("file1", "Choose a CSV File",
+                       fileInput("selectedFile", "Choose a CSV File",
                                  multiple = FALSE,
                                  accept = c("text/csv",
                                             "text/comma-separated-values,text/plain",
@@ -30,21 +33,15 @@ ui <- fluidPage(
                        tags$hr(),
                        
                        # Input: Checkbox if file has header ----
-                       checkboxInput("header", "Header", TRUE),
+                       checkboxInput("selectedHeader", "Header", TRUE),
                        
                        # Input: Select separator ----
-                       radioButtons("sep", "Separator",
+                       radioButtons("selectedSeparator", "Separator", inline = TRUE,
                                     choices = c(Comma = ",",
                                                 Semicolon = ";",
                                                 Tab = "\t"),
                                     selected = ","),
                        
-                       # Input: Select quotes ----
-                       radioButtons("quote", "Quote",
-                                    choices = c(None = "",
-                                                "Double Quote" = '"',
-                                                "Single Quote" = "'"),
-                                    selected = '"'),
                        
                        # Horizontal line ----
                        tags$hr(),
@@ -116,7 +113,9 @@ ui <- fluidPage(
         tabsetPanel(
           id = "tabset",
           tabPanel("Data",
-                   plotOutput("distPlot")),
+                   h4('Study Data'),
+                   DT::dataTableOutput("dataTable")
+                   ),
           tabPanel("Plot", "two"),
           tabPanel("Help", "three"),
           tabPanel("About", "three")
