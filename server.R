@@ -105,7 +105,7 @@ function(input, output, session) {
                  data = exampleData1)
   
   output$survivalPlot <- renderPlot(
-    # Visualize with survminer
+    #Visualize with survminer
     
     ggsurvplot(fit, data = exampleData1, risk.table = FALSE)
   )
