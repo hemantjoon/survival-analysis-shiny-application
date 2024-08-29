@@ -60,12 +60,12 @@ ui <- fluidPage(
                        # Horizontal line ----
                        tags$hr(),
                        
-                       h4('Select Gene, Outcome and Duration variables'),
+                       h4('Select Dependent variable, Status and Time variables'),
                        
                        selectInput(
-                         inputId = "selectedGene",
-                         label = "Select Gene",
-                         choices = c("sex", "BCL11A", "PIK3CA", "TP63"),
+                         inputId = "selectedDependentVariableColumn",
+                         label = "Dependent variable (male/female)",
+                         choices = c("status", "sex"),
                          selected = "sex",
                          multiple = FALSE,
                          selectize = TRUE,
@@ -74,9 +74,9 @@ ui <- fluidPage(
                        ),
                        
                        selectInput(
-                         inputId = "selectedOutcomeColumn",
-                         label = "Outcome column (Dead or Alive)",
-                         choices = c("status", "Col 2", "Col 3", "Col 4"),
+                         inputId = "selectedStatusColumn",
+                         label = "Status (Dead/Alive)",
+                         choices = c("status", "sex"),
                          selected = "status",
                          multiple = FALSE,
                          selectize = TRUE,
@@ -85,26 +85,16 @@ ui <- fluidPage(
                        ),
                        
                        selectInput(
-                         inputId = "selectedDurationColumn",
-                         label = "Time duration column",
-                         choices = c("time", "Col 2", "Col 3", "Col 4"),
+                         inputId = "selectedTimeColumn",
+                         label = "Time",
+                         choices = c("inst", "time", "status", "age", "sex", "ph_ecog", "ph_karno", "pat_karno"),
                          selected = "time",
                          multiple = FALSE,
                          selectize = TRUE,
                          width = NULL,
                          size = NULL
                        ),
-                       
-                       selectInput(
-                         inputId = "selectedDurationStepSize",
-                         label = "Time interval",
-                         choices = c("Days", "Months", "Weeks", "Years"),
-                         selected = "Days",
-                         multiple = FALSE,
-                         selectize = TRUE,
-                         width = NULL,
-                         size = NULL
-                       ),
+  
                       
                        
                       ),
@@ -133,7 +123,8 @@ ui <- fluidPage(
                                     downloadButton("downloadExampleFile2", "Example 2")
                                   )
                                   ),
-                   DT::dataTableOutput("dataTable")
+                   div(DT::dataTableOutput("dataTable"), style = "overflow-x: auto; width: 100%;")
+                   
                    ),
           tabPanel("Plot",
                    plotOutput("survivalPlot")),

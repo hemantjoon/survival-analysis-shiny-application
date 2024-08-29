@@ -29,14 +29,30 @@ function(input, output, session) {
   # Reactive to determine the selected dataset
   dataset <- reactive({
     if (input$selectedDataMode == "ex1") {
-      updateSelectInput(session, "selectedGene", choices = c("sex", "TP53", "EGFR"), selected = "sex")
+      updateSelectInput(session, "selectedDependentVariableColumn", 
+                        choices = c("status", "sex"), 
+                        selected = "sex")
+      updateSelectInput(session, "selectedStatusColumn", 
+                        choices = c("status", "sex"), 
+                        selected = "status")
+      updateSelectInput(session, "selectedTimeColumn", 
+                        choices = c("inst", "time", "status", "age", "sex", "ph_ecog", "ph_karno", "pat_karno"), 
+                        selected = "time")
       return(exampleData1)
     } else if (input$selectedDataMode == "ex2") {
-      updateSelectInput(session, "selectedGene", choices = c("PIK3CA", "TP63", "BRCA1"), selected = "PIK3CA")
+      updateSelectInput(session, "selectedDependentVariableColumn", 
+                        choices = c("Tumor_stage", "Histology", "vital_status", "deceased", "mRNAsi_value", "mDNAsi_value"), 
+                        selected = "Tumor_stage")
+      updateSelectInput(session, "selectedStatusColumn", 
+                        choices = c("vital_status", "deceased", "mRNAsi_value", "mDNAsi_value", "Stage"),
+                        selected = "vital_status")
+      updateSelectInput(session, "selectedTimeColumn", 
+                        choices = c("age_at_diagnosis", "year_of_birth", "overall_survival"), 
+                        selected = "overall_survival")
       return(exampleData2)
     } else if (input$selectedDataMode == "ex3") {
       req(input_file())
-      updateSelectInput(session, "selectedGene", choices = colnames(input_file()), selected = "filter1")
+      updateSelectInput(session, "selectedDependentVariableColumn", choices = colnames(input_file()), selected = "filter1")
       return(input_file())
     }
   })
@@ -63,11 +79,29 @@ function(input, output, session) {
 
   fit <- reactive({
     
-    duration <<- dataset()[[input$selectedDurationColumn]]
-    outcome <<- dataset()[[input$selectedOutcomeColumn]]
-    gene <<- dataset()[[input$selectedGene]]
+    # browser()
     
-    survfit(Surv(duration, outcome) ~ gene, data = dataset())
+    duration <<- dataset()[[input$selectedTimeColumn]]
+    status <<- dataset()[[input$selectedStatusColumn]]
+    dependentVariable <<- dataset()[[input$selectedDependentVariableColumn]]
+    
+    
+    # Check if the status column is numeric or logical
+    if (is.numeric(status) || is.logical(status)) {
+      # If it's logical, convert TRUE/FALSE to 1/0
+      status <- as.numeric(status)
+    } else {
+      # If it's not numeric or logical, identify unique values and convert
+      unique_values <- unique(status)
+      
+      # Map the first unique value to 0 (censored) and the second to 1 (event occurred)
+      status <- ifelse(status == unique_values[1], 0, 1)
+      
+      message(status)
+    }
+    
+    
+    survfit(Surv(duration, status) ~ dependentVariable, data = dataset())
   })
   
   # Render the survival plot
