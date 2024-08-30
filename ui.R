@@ -60,35 +60,35 @@ ui <- fluidPage(
                        # Horizontal line ----
                        tags$hr(),
                        
-                       h4('Select Dependent variable, Status and Time variables'),
+                       h4('Select Time, Status and Dependent variables'),
+                      
+                      selectInput(
+                        inputId = "selectedTimeColumn",
+                        label = "Time",
+                        choices = c("inst", "time", "status", "age", "sex", "ph_ecog", "ph_karno", "pat_karno"),
+                        selected = "time",
+                        multiple = FALSE,
+                        selectize = TRUE,
+                        width = NULL,
+                        size = NULL
+                      ),
+                      
+                      selectInput(
+                        inputId = "selectedStatusColumn",
+                        label = "Status (Dead/Alive)",
+                        choices = c("status", "sex"),
+                        selected = "status",
+                        multiple = FALSE,
+                        selectize = TRUE,
+                        width = NULL,
+                        size = NULL
+                      ),
                        
                        selectInput(
                          inputId = "selectedDependentVariableColumn",
                          label = "Dependent variable (male/female)",
                          choices = c("status", "sex"),
                          selected = "sex",
-                         multiple = FALSE,
-                         selectize = TRUE,
-                         width = NULL,
-                         size = NULL
-                       ),
-                       
-                       selectInput(
-                         inputId = "selectedStatusColumn",
-                         label = "Status (Dead/Alive)",
-                         choices = c("status", "sex"),
-                         selected = "status",
-                         multiple = FALSE,
-                         selectize = TRUE,
-                         width = NULL,
-                         size = NULL
-                       ),
-                       
-                       selectInput(
-                         inputId = "selectedTimeColumn",
-                         label = "Time",
-                         choices = c("inst", "time", "status", "age", "sex", "ph_ecog", "ph_karno", "pat_karno"),
-                         selected = "time",
                          multiple = FALSE,
                          selectize = TRUE,
                          width = NULL,

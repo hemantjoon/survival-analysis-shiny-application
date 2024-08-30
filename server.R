@@ -26,34 +26,31 @@ function(input, output, session) {
     }
   )
   
+  autoChoices <- function(data){
+    timeChoices <- colnames(data)[sapply(data, function(col) is.numeric(col) )]
+    statusChoices <- colnames(data)[sapply(data, function(col) length(unique(col)) == 2)]
+    dependentVariableChoices <- colnames(data)[sapply(data, function(col) length(unique(col)) == 2)]
+    
+    updateSelectInput(session, "selectedTimeColumn", choices = timeChoices)
+    updateSelectInput(session, "selectedStatusColumn", choices = statusChoices)
+    updateSelectInput(session, "selectedDependentVariableColumn", choices = dependentVariableChoices)
+  }
+  
   # Reactive to determine the selected dataset
   dataset <- reactive({
     if (input$selectedDataMode == "ex1") {
-      updateSelectInput(session, "selectedDependentVariableColumn", 
-                        choices = c("status", "sex"), 
-                        selected = "sex")
-      updateSelectInput(session, "selectedStatusColumn", 
-                        choices = c("status", "sex"), 
-                        selected = "status")
-      updateSelectInput(session, "selectedTimeColumn", 
-                        choices = c("inst", "time", "status", "age", "sex", "ph_ecog", "ph_karno", "pat_karno"), 
-                        selected = "time")
+      autoChoices(exampleData1)
       return(exampleData1)
     } else if (input$selectedDataMode == "ex2") {
-      updateSelectInput(session, "selectedDependentVariableColumn", 
-                        choices = c("Tumor_stage", "Histology", "vital_status", "deceased", "mRNAsi_value", "mDNAsi_value"), 
-                        selected = "Tumor_stage")
-      updateSelectInput(session, "selectedStatusColumn", 
-                        choices = c("vital_status", "deceased", "mRNAsi_value", "mDNAsi_value", "Stage"),
-                        selected = "vital_status")
-      updateSelectInput(session, "selectedTimeColumn", 
-                        choices = c("age_at_diagnosis", "year_of_birth", "overall_survival"), 
-                        selected = "overall_survival")
+      autoChoices(exampleData2)
       return(exampleData2)
     } else if (input$selectedDataMode == "ex3") {
       req(input_file())
-      updateSelectInput(session, "selectedDependentVariableColumn", choices = colnames(input_file()), selected = "filter1")
-      return(input_file())
+      data <- input_file()
+      
+      autoChoices(data)
+      
+      return(data)
     }
   })
   
@@ -97,8 +94,8 @@ function(input, output, session) {
       # Map the first unique value to 0 (censored) and the second to 1 (event occurred)
       status <- ifelse(status == unique_values[1], 0, 1)
       
-      message(status)
     }
+      
     
     
     survfit(Surv(duration, status) ~ dependentVariable, data = dataset())
