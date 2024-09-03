@@ -28,7 +28,7 @@ function(input, output, session) {
   
   autoChoices <- function(data){
     timeChoices <- colnames(data)[sapply(data, function(col) is.numeric(col) )]
-    statusChoices <- colnames(data)[sapply(data, function(col) length(unique(col)) == 2)]
+    statusChoices <- colnames(data)[sapply(data, function(col) (length(unique(col)) == 2 && is.logical(col)) || (length(unique(col)) == 2 && is.numeric(col)) )]
     dependentVariableChoices <- colnames(data)[sapply(data, function(col) length(unique(col)) == 2)]
     
     updateSelectInput(session, "selectedTimeColumn", choices = timeChoices)
@@ -40,6 +40,9 @@ function(input, output, session) {
   dataset <- reactive({
     if (input$selectedDataMode == "ex1") {
       autoChoices(exampleData1)
+      updateSelectInput(session, "selectedTimeColumn", selected = "time")
+      updateSelectInput(session, "selectedStatusColumn", selected = "status")
+      updateSelectInput(session, "selectedDependentVariableColumn", selected = "sex")
       return(exampleData1)
     } else if (input$selectedDataMode == "ex2") {
       autoChoices(exampleData2)
@@ -75,13 +78,9 @@ function(input, output, session) {
   
 
   fit <- reactive({
-    
-    # browser()
-    
     duration <<- dataset()[[input$selectedTimeColumn]]
     status <<- dataset()[[input$selectedStatusColumn]]
     dependentVariable <<- dataset()[[input$selectedDependentVariableColumn]]
-    
     
     # Check if the status column is numeric or logical
     if (is.numeric(status) || is.logical(status)) {
@@ -92,18 +91,38 @@ function(input, output, session) {
       unique_values <- unique(status)
       
       # Map the first unique value to 0 (censored) and the second to 1 (event occurred)
-      status <- ifelse(status == unique_values[1], 0, 1)
+      status <<- ifelse(status == unique_values[1], 0, 1)
       
     }
       
-    
-    
     survfit(Surv(duration, status) ~ dependentVariable, data = dataset())
   })
   
   # Render the survival plot
-  output$survivalPlot <- renderPlot({
-    ggsurvplot(fit(), data = dataset())
+  output$survivalPlot <- renderPlotly({
+    ggplot_surv <- ggsurvplot(fit(), data = dataset(),
+                              size = input$crLineWidth,
+                              linetype = input$crLineType,
+                              censor.shape = input$crCensorShape,
+                              censor.size = input$crCensorWidth,
+                              conf.int = input$crCIBoolean,
+                              conf.int.style = "step",
+                              surv.median.line = input$crMedianLineType,
+                              break.y.by = input$crYAxisStepSize,
+                              pval = if (input$crPValueBoolean == "TRUE") TRUE else FALSE,
+                              palette = c(input$crAxisXColor, input$crAxisYColor),
+                              xlab = if (nchar(input$crXTitle) != 0) input$crXTitle else "Time",
+                              ylab = if (nchar(input$crYTitle) != 0) input$crYTitle else "Survival Probability",
+                              legend.title= if (nchar(input$crLegendTitle) != 0) input$crLegendTitle,
+                              legend.labs = c(
+                                              if(nchar(input$crLegendTitle1) != 0) input$crLegendTitle1, 
+                                              if(nchar(input$crLegendTitle2) != 0) input$crLegendTitle2
+                                              ),
+                              ggtheme = theme(panel.background = element_rect(fill = input$crBgColor),
+                                              panel.grid = element_line(colour = input$crGridColor, linetype = input$crGridType, linewidth = input$crGridSize), 
+                              ),
+                              )
+    ggplot_surv$plot
   })
   
   
