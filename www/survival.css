@@ -1,0 +1,57 @@
+
+.aboutSidebar{
+  background-color: #95a798;
+}
+
+.hemant-img {
+     width: 250px;
+     height: 250px;
+     display: block;
+     overflow: hidden;
+     border-radius: 50%;
+     margin-left: auto;
+     margin-right: auto;
+}
+  
+h2 {
+  font-weight: 600;
+  text-align: center;
+}
+
+.intro-social{
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+
+.sidebar-info{
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-info h4{
+  color: #000000;
+  font-weight: 600;
+}
+
+.sidebar-info a{
+  color: #491478;
+  font-weight: 600;
+  font-size: medium;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

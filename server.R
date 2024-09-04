@@ -26,14 +26,26 @@ function(input, output, session) {
     }
   )
   
+  # observe({
+  #   if (input$tabset == "Help") {
+  #     hide("sidebar")  # Hide the sidebar when "Help" is selected
+  #     runjs('$(".col-sm-8").removeClass("col-sm-8").addClass("col-sm-12");')  # Expand the main panel
+  #   } else {
+  #     show("sidebar")  # Show the sidebar for other tabs
+  #     runjs('$(".col-sm-12").removeClass("col-sm-12").addClass("col-sm-8");')  # Reset the main panel width
+  #   }
+  # })
+  
   autoChoices <- function(data){
     timeChoices <- colnames(data)[sapply(data, function(col) is.numeric(col) )]
-    statusChoices <- colnames(data)[sapply(data, function(col) (length(unique(col)) == 2 && is.logical(col)) || (length(unique(col)) == 2 && is.numeric(col)) )]
+    statusChoices <- colnames(data)[sapply(data, function(col) length(unique(col)) == 2)]
     dependentVariableChoices <- colnames(data)[sapply(data, function(col) length(unique(col)) == 2)]
     
     updateSelectInput(session, "selectedTimeColumn", choices = timeChoices)
     updateSelectInput(session, "selectedStatusColumn", choices = statusChoices)
     updateSelectInput(session, "selectedDependentVariableColumn", choices = dependentVariableChoices)
+    
+    updateRadioButtons(session, "selectedDependentVariableType", selected = "bool")
   }
   
   # Reactive to determine the selected dataset
@@ -57,6 +69,7 @@ function(input, output, session) {
     }
   })
   
+
   # Rendering the dataTable
   output$dataTable <- DT::renderDataTable({
     DT::datatable(
@@ -76,54 +89,210 @@ function(input, output, session) {
     data
   })
   
+  # Toggle
+  observe({
+    toggleState(id = "crGridSize", condition = input$crGridBoolean == "TRUE")
+    toggleState(id = "crGridColor", condition = input$crGridBoolean == "TRUE")
+    toggleState(id = "crPvaluePosition", condition = input$crPValueBoolean == "TRUE")
+    toggleState(id = "crPvalueSize", condition = input$crPValueBoolean == "TRUE")
+    toggleState(id = "crPvalueColor", condition = input$crPValueBoolean == "TRUE")
+    toggleState(id = "crTruncateXCoordinate", condition = input$crTruncateXBoolean == "TRUE")
+  })
+  
+  # Observe Time Column
+  observeEvent(input$selectedTimeColumn,{
+    req(max(dataset()[[input$selectedTimeColumn]], na.rm = T))
+    
+    TimeMax <- max(dataset()[[input$selectedTimeColumn]], na.rm = T)
+    TimeMin <- min(dataset()[[input$selectedTimeColumn]], na.rm = T)
+    
+    XAxisStepSize <- 10
+    
+    if(TimeMax >= 1000){
+      XAxisStepSize = ceiling(TimeMax/(5*100))*100
+    }
+    else if(TimeMax >= 100){
+      XAxisStepSize = ceiling(TimeMax/(5*10))*10
+    }
+    else if(TimeMax >= 1){
+      XAxisStepSize = ceiling(TimeMax/5)
+    }
+    else{
+      XAxisStepSize = TimeMax/5
+    }
+    updateNumericInput(session, "crXAxisStepSize", min = TimeMin, max = TimeMax, value = XAxisStepSize)
+    
+    TruncateXCoordinate <- 10
+    if(TimeMax >= 1000){
+      TruncateXCoordinate = ceiling(TimeMax/(2*100))*100
+    }
+    else if(TimeMax >= 100){
+      TruncateXCoordinate = ceiling(TimeMax/(2*10))*10
+    }
+    else if(TimeMax >= 1){
+      TruncateXCoordinate = ceiling(TimeMax/2)
+    }
+    else{
+      TruncateXCoordinate = TimeMax/2
+    }
+    updateNumericInput(session, "crTruncateXCoordinate", min = TimeMin, max = TimeMax, value = TruncateXCoordinate)
+    
+    PValXCoordinateMax <<- TimeMax
+  })
+  
+  # Observe Status Column
+  observeEvent(input$selectedStatusColumn,{
+    unique_values <- dataset()[[input$selectedStatusColumn]]
+    updateSelectInput(session, "selectCensoredLabel", choices = unique_values)
+  })
+  
+  # Observe Dependent Variable Type
+  observeEvent(input$selectedDependentVariableType,{
+    if(input$selectedDependentVariableType == "bool"){
+      updateSelectInput(session, "selectedDependentVariableColumn", 
+                        choices = colnames(dataset())[sapply(dataset(), function(col) length(unique(col)) == 2)])
+    }
+    else{
+      updateSelectInput(session, "selectedDependentVariableColumn", 
+                        choices = colnames(dataset())[sapply(dataset(), function(col) {is.numeric(col) & sum(is.na(col)) == 0 } )])
+    }
+  })
+  
+  
+  pValueCoordinates <- reactive({
 
+    if(input$crPvaluePosition== 'bottom-center'){
+      PValYCoordinate <- 0.1
+      PValXCoordinate <- ceiling(PValXCoordinateMax/(2))
+    }
+    else if(input$crPvaluePosition == 'bottom-right'){
+      PValYCoordinate = 0.1
+      PValXCoordinate = ceiling(PValXCoordinateMax/(1.1))
+    }
+    else if(input$crPvaluePosition == 'center-left'){
+      PValYCoordinate = 0.5
+      PValXCoordinate = ceiling(PValXCoordinateMax/(99))
+    }
+    else if(input$crPvaluePosition == 'center-right'){
+      PValYCoordinate = 0.5
+      PValXCoordinate = ceiling(PValXCoordinateMax/(1.1))
+    }
+    else if(input$crPvaluePosition == 'upper-left'){
+      PValYCoordinate = 0.9
+      PValXCoordinate = ceiling(PValXCoordinateMax/(99))
+    }
+    else if(input$crPvaluePosition == 'upper-center'){
+      PValYCoordinate = 0.9
+      PValXCoordinate = ceiling(PValXCoordinateMax/(2))
+    }
+    else if(input$crPvaluePosition == 'upper-right'){
+      PValYCoordinate = 0.9
+      PValXCoordinate = ceiling(PValXCoordinateMax/(1.1))
+    } else {
+      # Default values if no position is selected
+      PValXCoordinate <- NULL
+      PValYCoordinate <- NULL
+    }
+    
+    return(list(x=PValXCoordinate, y=PValYCoordinate))
+    
+  })
+
+  # survfit 
   fit <- reactive({
     duration <<- dataset()[[input$selectedTimeColumn]]
     status <<- dataset()[[input$selectedStatusColumn]]
     dependentVariable <<- dataset()[[input$selectedDependentVariableColumn]]
     
-    # Check if the status column is numeric or logical
-    if (is.numeric(status) || is.logical(status)) {
-      # If it's logical, convert TRUE/FALSE to 1/0
-      status <- as.numeric(status)
-    } else {
-      # If it's not numeric or logical, identify unique values and convert
-      unique_values <- unique(status)
-      
-      # Map the first unique value to 0 (censored) and the second to 1 (event occurred)
-      status <<- ifelse(status == unique_values[1], 0, 1)
-      
+    status <<- ifelse(status == input$selectCensoredLabel, 0, 1)
+    
+    if(input$selectedDependentVariableType == "number"){
+      if(input$selectedDependentVariableSplit == "median"){
+        dependentVariable <- ifelse(dependentVariable > median(dependentVariable), 'high', 'low')
+      }
+      else if(input$selectedDependentVariableSplit == "upper"){
+        dependentVariable <- cut(
+          dependentVariable, 
+          breaks = quantile(dependentVariable, probs = c(0, 0.25, 1), na.rm = TRUE),
+          labels = c("low", "high"),
+          include.lowest = TRUE
+        )
+      }
+      else if(input$selectedDependentVariableSplit == "lower"){
+        dependentVariable <- cut(
+          dependentVariable, 
+          breaks = quantile(dependentVariable, probs = c(0, 0.75, 1), na.rm = TRUE),
+          labels = c("low", "high"),
+          include.lowest = TRUE
+        )
+      }
     }
-      
+    
     survfit(Surv(duration, status) ~ dependentVariable, data = dataset())
   })
-  
+
   # Render the survival plot
-  output$survivalPlot <- renderPlotly({
+  plot_survival <- reactive({
+    
+    legendList <- unique(dataset()[[input$selectedDependentVariableColumn]])
+    legendLabelOne <- paste(input$selectedDependentVariableColumn, "=", as.character(legendList[1]), sep = " ")
+    legendLabelTwo <- paste(input$selectedDependentVariableColumn, "=", as.character(legendList[2]), sep = " ")
+    
+    if(input$selectedDependentVariableType == "number"){
+      legendLabelOne <- 'high'
+      legendLabelTwo <- 'low'
+    }
+    
     ggplot_surv <- ggsurvplot(fit(), data = dataset(),
                               size = input$crLineWidth,
                               linetype = input$crLineType,
                               censor.shape = input$crCensorShape,
                               censor.size = input$crCensorWidth,
-                              conf.int = input$crCIBoolean,
-                              conf.int.style = "step",
                               surv.median.line = input$crMedianLineType,
+                              break.time.by = input$crXAxisStepSize,
                               break.y.by = input$crYAxisStepSize,
                               pval = if (input$crPValueBoolean == "TRUE") TRUE else FALSE,
-                              palette = c(input$crAxisXColor, input$crAxisYColor),
+                              pval.size = input$crPvalueSize,
+                              pval.coord = c(pValueCoordinates()$x, pValueCoordinates()$y),
+                              palette = c(input$crClass1Color, input$crClass2Color),
                               xlab = if (nchar(input$crXTitle) != 0) input$crXTitle else "Time",
                               ylab = if (nchar(input$crYTitle) != 0) input$crYTitle else "Survival Probability",
                               legend.title= if (nchar(input$crLegendTitle) != 0) input$crLegendTitle,
                               legend.labs = c(
-                                              if(nchar(input$crLegendTitle1) != 0) input$crLegendTitle1, 
-                                              if(nchar(input$crLegendTitle2) != 0) input$crLegendTitle2
-                                              ),
-                              ggtheme = theme(panel.background = element_rect(fill = input$crBgColor),
-                                              panel.grid = element_line(colour = input$crGridColor, linetype = input$crGridType, linewidth = input$crGridSize), 
+                                if(nchar(input$crLegendTitle1) != 0) input$crLegendTitle1 else legendLabelOne, 
+                                if(nchar(input$crLegendTitle2) != 0) input$crLegendTitle2 else legendLabelTwo
                               ),
-                              )
+                              ggtheme = theme(panel.background = element_rect(fill = input$crBgColor),
+                                              panel.grid = if (input$crGridBoolean == "TRUE") element_line(colour = input$crGridColor, linewidth = input$crGridSize) 
+                                              else element_blank(),
+                              ),
+                              xlim = if (input$crTruncateXBoolean == "TRUE") c(0, input$crTruncateXCoordinate),
+    )
+    
+    if(input$crPValueBoolean == "TRUE") ggplot_surv[["plot"]][["layers"]][[4]][["aes_params"]][["colour"]] = input$crPvalueColor
+    
     ggplot_surv$plot
+    
+  })
+  
+  # Render the plot using Plotly
+  output$survivalPlot <- renderPlotly({
+    plotHeight <- input$crPlotHeight * 37.795275591  # Convert cm to pixels
+    plotWidth <- input$crPlotWidth * 37.795275591    # Convert cm to pixels
+    ggplotly(plot_survival(), height = plotHeight, width = plotWidth)
   })
   
   
+  output$plotDownload <- downloadHandler(
+    filename = function() {
+      paste("survival_plot.",input$plotFormat, sep = "")  # Name of the file when downloaded
+    },
+    content = function(file) {
+      plotHeight <- (input$crPlotHeight/2.54)
+      plotWidth <- (input$crPlotWidth/2.54)
+      plotDPI <- as.numeric(input$plotDPI)
+      
+      ggsave(file, plot = plot_survival() ,device = input$plotFormat, width=plotWidth, height=plotHeight, dpi = plotDPI)
+    }
+  )  
 }
