@@ -1,5 +1,7 @@
 test.R
 www/help.qmd
+quarto/
+www/example/GSE30219.csv
 
 # History files
 .Rhistory

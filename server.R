@@ -6,11 +6,22 @@ function(input, output, session) {
   exampleData1 <- read.csv("www/example/survival_example1.csv")
   exampleData2 <- read.csv("www/example/survival_example2.csv")
   
+ my_modal <- function (timeColumn, statusColumn, dependentVariableColumn) {modalDialog(
+    title = "File attributes",
+    HTML("<strong>", timeColumn, "</strong>", ": Represents the time column <br>",
+         "<strong>", statusColumn, "</strong>", ": Represents the status column <br>",
+         "<strong>", dependentVariableColumn, "</strong>", ": Represnts the dependent variable column"),
+    easyClose = TRUE,
+    footer = NULL
+  )
+ }
+  
   output$downloadExampleFile1 <- downloadHandler(
     filename = function() {
       "example_file_1.txt"  # Name of the file when downloaded
     },
     content = function(file) {
+      showModal(my_modal("time", "status", "sex"))
       # Specify the path to the file in the www folder
       file.copy("www/example/survival_example1.csv", file)
     }
@@ -21,6 +32,7 @@ function(input, output, session) {
       "example_file_2.txt"  # Name of the file when downloaded
     },
     content = function(file) {
+      showModal(my_modal("overall_survival", "vital_status", "Tumor_stage"))
       # Specify the path to the file in the www folder
       file.copy("www/example/survival_example2.csv", file)
     }
@@ -46,15 +58,22 @@ function(input, output, session) {
     updateSelectInput(session, "selectedDependentVariableColumn", choices = dependentVariableChoices)
     
     updateRadioButtons(session, "selectedDependentVariableType", selected = "bool")
+    
+    if(input$selectedDataMode == "ex1"){
+      updateSelectInput(session, "selectedTimeColumn", selected = "time")
+      updateSelectInput(session, "selectedStatusColumn", selected = "status")
+      updateSelectInput(session, "selectedDependentVariableColumn", selected = "sex")
+    }
+    else if(input$selectedDataMode == "ex2"){
+      updateSelectInput(session, "selectedTimeColumn", selected = "overall_survival")
+      updateSelectInput(session, "selectedStatusColumn", selected = "vital_status")
+    }
   }
   
   # Reactive to determine the selected dataset
   dataset <- reactive({
     if (input$selectedDataMode == "ex1") {
       autoChoices(exampleData1)
-      updateSelectInput(session, "selectedTimeColumn", selected = "time")
-      updateSelectInput(session, "selectedStatusColumn", selected = "status")
-      updateSelectInput(session, "selectedDependentVariableColumn", selected = "sex")
       return(exampleData1)
     } else if (input$selectedDataMode == "ex2") {
       autoChoices(exampleData2)
@@ -151,6 +170,12 @@ function(input, output, session) {
     if(input$selectedDependentVariableType == "bool"){
       updateSelectInput(session, "selectedDependentVariableColumn", 
                         choices = colnames(dataset())[sapply(dataset(), function(col) length(unique(col)) == 2)])
+      if (input$selectedDataMode == "ex1") {
+        updateSelectInput(session, "selectedDependentVariableColumn", selected = "sex")
+      }
+      if (input$selectedDataMode == "ex2") {
+        updateSelectInput(session, "selectedDependentVariableColumn", selected = "Tumor_stage")
+      }
     }
     else{
       updateSelectInput(session, "selectedDependentVariableColumn", 

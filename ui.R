@@ -88,7 +88,7 @@ ui <- fluidPage(
                                                   Semicolon = ";",
                                                   Space = " ",
                                                   Tab = "\t"),
-                                      selected = ";")
+                                      selected = ",")
                        
                         ),
                        
@@ -303,7 +303,7 @@ ui <- fluidPage(
                          ),
                          div(class="sidebar-info",
                              h4("Email"),
-                             tags$a(href="mailto:joonhemant99@gmail.com", "joonhemant99@gmail.com",
+                             tags$a(href="mailto:hemant.joon@rcb.res.in", "hemant.joon@rcb.res.in",
                                     target="_blank")
                          ),
                          
@@ -348,7 +348,7 @@ ui <- fluidPage(
           
           tabPanel("Help",
                    
-                   tags$iframe(src = "https://hemantjoon.github.io/ssc_tesseract.html", 
+                   tags$iframe(src = "help.html", 
                                width = "100%", 
                                height = "800px", 
                                frameborder = "0",
